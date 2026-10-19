@@ -91,25 +91,20 @@ def to_utc_iso(value):
 
 
 def push_to_hub():
-    """POST the cached upcoming shifts to the live hub app (/api/sync).
+    """Publish the cached upcoming shifts to the live hub app.
 
-    Needs HUB_URL env (e.g. https://yuki-hub.onrender.com) and the shared
-    secret in .sync_secret (gitignored). Prints a one-line summary.
+    Transport: commit shifts.json to the `data` branch of the yuki-hub repo
+    via the GitHub API (direct POSTs to *.onrender.com hang from this VM,
+    but api.github.com works). The Render app fetches shifts.json from the
+    GitHub contents API at request time (5-min cache), so no redeploy is
+    needed when shifts change. Prints a one-line summary.
     """
-    import urllib.request
+    import base64
 
-    hub_url = os.environ.get("HUB_URL", "").rstrip("/")
-    if not hub_url:
-        print("push skipped: HUB_URL not set")
-        return 1
-    secret_path = os.path.join(BASE, ".sync_secret")
-    if not os.path.exists(secret_path):
-        print("push skipped: .sync_secret missing")
-        return 1
-    secret = open(secret_path).read().strip()
-    if not secret:
-        print("push skipped: .sync_secret empty")
-        return 1
+    GH = os.path.expanduser("~/workspace/custom-connectors/custom.github/bin/gh.py")
+    REPO = "ccaamm2113/yuki-hub"
+    PATH = "shifts.json"
+    BRANCH = "data"
 
     db = sqlite3.connect(DB_PATH)
     db.row_factory = sqlite3.Row
@@ -120,24 +115,48 @@ def push_to_hub():
         (now,),
     ).fetchall()
     db.close()
-    payload = json.dumps({"shifts": [dict(r) for r in rows]}).encode()
-    req = urllib.request.Request(
-        hub_url + "/api/sync",
-        data=payload,
-        headers={"Content-Type": "application/json",
-                 "Authorization": f"Bearer {secret}"},
-        method="POST",
-    )
+    payload_shifts = [dict(r) for r in rows]
+
+    def gh(method, api_path, body=None):
+        cmd = ["python3", GH, method, api_path]
+        if body is not None:
+            with open("/tmp/yukihub_gh_body.json", "w") as f:
+                json.dump(body, f)
+            cmd.append("/tmp/yukihub_gh_body.json")
+        try:
+            out = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        except Exception as e:
+            raise SyncError(f"github api call failed: {e}")
+        if out.returncode != 0:
+            raise SyncError(f"github api {method} {api_path} failed: {(out.stderr or out.stdout)[:160]}")
+        try:
+            return json.loads(out.stdout)
+        except json.JSONDecodeError:
+            raise SyncError("github returned an unreadable response")
+
+    # Get current SHA on the data branch (if the file exists yet).
+    sha = None
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            body = json.loads(resp.read().decode())
-    except Exception as e:
+        existing = gh("GET", f"/repos/{REPO}/contents/{PATH}?ref={BRANCH}")
+        if isinstance(existing, dict):
+            sha = existing.get("sha")
+    except SyncError as e:
+        if "404" not in str(e):
+            print(f"push skipped: {e}")
+            return 1
+
+    content = base64.b64encode(
+        json.dumps({"shifts": payload_shifts, "updated_at": now}).encode()
+    ).decode()
+    body = {"message": f"shifts sync {now[:16]}", "content": content, "branch": BRANCH}
+    if sha:
+        body["sha"] = sha
+    try:
+        gh("PUT", f"/repos/{REPO}/contents/{PATH}", body)
+    except SyncError as e:
         print(f"push failed: {e}")
         return 1
-    if not body.get("ok"):
-        print(f"push failed: {body}")
-        return 1
-    print(f"pushed {body.get('shifts')} shifts to {hub_url}")
+    print(f"pushed {len(payload_shifts)} shifts to {REPO}@{BRANCH}/{PATH}")
     return 0
 
 
