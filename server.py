@@ -23,8 +23,10 @@ VERSION = "v1"
 SYNC_SECRET = os.environ.get("SYNC_SECRET", "")
 # Live shift feed: the sync job commits shifts.json to the `data` branch of
 # the yuki-hub repo; the app reads it here (no redeploy needed on changes).
+# raw.githubusercontent.com is used instead of the GitHub API to avoid the
+# 60/hr unauthenticated rate limit on shared Render IPs.
 SHIFTS_FEED_URL = (
-    "https://api.github.com/repos/ccaamm2113/yuki-hub/contents/shifts.json?ref=data"
+    "https://raw.githubusercontent.com/ccaamm2113/yuki-hub/data/shifts.json"
 )
 _remote_cache = {"at": None, "shifts": []}
 
@@ -38,8 +40,7 @@ def fetch_remote_shifts():
     try:
         req = _urlreq.Request(
             SHIFTS_FEED_URL,
-            headers={"User-Agent": "yuki-hub",
-                     "Accept": "application/vnd.github.raw"},
+            headers={"User-Agent": "yuki-hub"},
         )
         with _urlreq.urlopen(req, timeout=15) as resp:
             data = _json.loads(resp.read().decode())
