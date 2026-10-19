@@ -1,0 +1,110 @@
+/* Yuki Hub v1 — playful anime terminal, dark + neon */
+:root {
+  --bg: #0d0a1a;
+  --card: rgba(30, 22, 58, 0.72);
+  --pink: #ff6ec7;
+  --purple: #9a9cff;
+  --cyan: #6ef3ff;
+  --text: #f2ecff;
+  --muted: #a99fd0;
+  --border: rgba(154, 156, 255, 0.25);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 0 16px 32px;
+}
+
+.bg-stars {
+  position: fixed; inset: 0; z-index: -1;
+  background:
+    radial-gradient(1px 1px at 12% 22%, #fff 100%, transparent 100%),
+    radial-gradient(1px 1px at 68% 8%, #fff 100%, transparent 100%),
+    radial-gradient(2px 2px at 84% 44%, var(--pink) 100%, transparent 100%),
+    radial-gradient(1px 1px at 32% 66%, #fff 100%, transparent 100%),
+    radial-gradient(2px 2px at 48% 88%, var(--purple) 100%, transparent 100%),
+    radial-gradient(1px 1px at 92% 74%, #fff 100%, transparent 100%),
+    linear-gradient(180deg, #141031 0%, #0d0a1a 70%);
+}
+
+.topbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 18px 4px; max-width: 980px; margin: 0 auto;
+}
+
+.brand {
+  font-size: 1.5rem; font-weight: 800;
+  background: linear-gradient(90deg, var(--pink), var(--purple), var(--cyan));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+.version {
+  font-size: 0.75rem; font-weight: 700; color: var(--cyan);
+  border: 1px solid var(--cyan); border-radius: 999px; padding: 3px 12px;
+}
+
+.grid {
+  max-width: 980px; margin: 0 auto;
+  display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 24px rgba(154, 156, 255, 0.08);
+}
+
+.card-label {
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--pink); margin-bottom: 12px;
+}
+
+.hero { grid-column: 1 / -1; text-align: center; padding: 32px 20px; }
+
+.big-title { font-size: 1.6rem; font-weight: 800; margin-bottom: 8px; }
+.big-time { font-size: 1.1rem; color: var(--cyan); }
+.countdown {
+  display: inline-block; margin-top: 12px;
+  font-size: 1.3rem; font-weight: 800; color: var(--pink);
+  border: 1px solid var(--pink); border-radius: 999px; padding: 6px 22px;
+  text-shadow: 0 0 12px rgba(255, 110, 199, 0.6);
+}
+
+.muted { color: var(--muted); }
+.small { font-size: 0.85rem; }
+
+.alarm-next { font-size: 1.05rem; margin-bottom: 6px; }
+.alarm-next strong { color: var(--cyan); }
+
+.alarm-list, .shift-list, .prompt-list { list-style: none; margin-top: 12px; }
+.alarm-list li, .prompt-list li {
+  padding: 6px 0; border-top: 1px solid rgba(154,156,255,0.12); font-size: 0.95rem;
+}
+.dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--pink); margin-right: 8px;
+  box-shadow: 0 0 8px var(--pink);
+}
+
+.shift-list li {
+  padding: 10px 0; border-top: 1px solid rgba(154,156,255,0.12);
+  display: grid; grid-template-columns: 110px 1fr; gap: 2px 10px;
+}
+.shift-day { color: var(--cyan); font-weight: 700; font-size: 0.9rem; }
+.shift-title { font-weight: 600; grid-column: 2; }
+.shift-time { color: var(--muted); font-size: 0.85rem; grid-column: 2; }
+
+.yuki-card { border-color: rgba(255, 110, 199, 0.4); }
+.yuki-text { font-size: 1.02rem; margin-bottom: 10px; line-height: 1.5; }
+.prompt-list li { color: var(--cyan); font-style: italic; }
+
+.foot { text-align: center; margin-top: 24px; }

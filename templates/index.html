@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yuki Hub</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="bg-stars"></div>
+<header class="topbar">
+  <div class="brand">🧵 Yuki Hub</div>
+  <div class="version">{{ version }}</div>
+</header>
+
+<main class="grid">
+
+  <section class="card hero">
+    <div class="card-label">Up next</div>
+    {% if next_shift %}
+      <div class="big-title">{{ next_shift.title }}</div>
+      <div class="big-time">{{ next_shift.day }} · {{ next_shift.time_range }}</div>
+      <div class="countdown">{{ countdown }}</div>
+    {% else %}
+      <div class="big-title">No upcoming shifts</div>
+      <div class="muted">Enjoy the time off ✌️</div>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <div class="card-label">⏰ Alarms</div>
+    {% if next_alarm %}
+      <div class="alarm-next">Next alarm: <strong>{{ next_alarm }}</strong></div>
+      <div class="muted small">1 hour before your shift — arrives as a message from Yuki.</div>
+      <ul class="alarm-list">
+        {% for a in week_alarms %}
+          <li><span class="dot"></span>{{ a.alarm }} <span class="muted">· {{ a.title }}</span></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="muted">No alarms scheduled — no upcoming shifts.</div>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <div class="card-label">📅 This week</div>
+    {% if week_shifts %}
+      <ul class="shift-list">
+        {% for s in week_shifts %}
+          <li>
+            <div class="shift-day">{{ s.day }}</div>
+            <div class="shift-title">{{ s.title }}</div>
+            <div class="shift-time">{{ s.time_range }}</div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="muted">Nothing on the schedule this week.</div>
+    {% endif %}
+  </section>
+
+  <section class="card yuki-card">
+    <div class="card-label">✨ Yuki</div>
+    <div class="yuki-text">Chat with Yuki in the Muse app — your schedule is already linked there.</div>
+    <div class="muted small">Try asking:</div>
+    <ul class="prompt-list">
+      <li>"when's my next shift"</li>
+      <li>"remind me to bring my charger before work"</li>
+      <li>"what's on this week"</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer class="foot muted small">Yuki Hub {{ version }} · shifts sync from your Google Calendar</footer>
+</body>
+</html>
