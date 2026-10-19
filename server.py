@@ -7,6 +7,8 @@ No login, no paywall — single user, local/personal use.
 """
 import os
 import sqlite3
+import json as _json
+import urllib.request as _urlreq
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 
@@ -19,6 +21,35 @@ VERSION = "v1"
 # Shared secret for the /api/sync push endpoint. Set as env var on Render;
 # the local sync script reads it from .sync_secret (gitignored).
 SYNC_SECRET = os.environ.get("SYNC_SECRET", "")
+# Live shift feed: the sync job commits shifts.json to the `data` branch of
+# the yuki-hub repo; the app reads it here (no redeploy needed on changes).
+SHIFTS_FEED_URL = (
+    "https://api.github.com/repos/ccaamm2113/yuki-hub/contents/shifts.json?ref=data"
+)
+_remote_cache = {"at": None, "shifts": []}
+
+
+def fetch_remote_shifts():
+    """Shifts from the GitHub data branch, 5-min in-memory cache.
+    Returns a list of dicts (cal_event_id/title/start_utc/end_utc) or []."""
+    now = datetime.now(timezone.utc)
+    if _remote_cache["at"] and (now - _remote_cache["at"]).total_seconds() < 300:
+        return _remote_cache["shifts"]
+    try:
+        req = _urlreq.Request(
+            SHIFTS_FEED_URL,
+            headers={"User-Agent": "yuki-hub",
+                     "Accept": "application/vnd.github.raw"},
+        )
+        with _urlreq.urlopen(req, timeout=15) as resp:
+            data = _json.loads(resp.read().decode())
+        shifts = data.get("shifts", []) if isinstance(data, dict) else []
+        _remote_cache["at"] = now
+        _remote_cache["shifts"] = shifts
+        return shifts
+    except Exception:
+        # Fall back to the last cached copy (may be stale or empty).
+        return _remote_cache["shifts"]
 
 app = Flask(__name__)
 
@@ -122,13 +153,18 @@ def api_sync():
 def index():
     init_db()
     now_utc = datetime.now(timezone.utc)
-    db = get_db()
-    rows = db.execute(
-        "SELECT * FROM shifts WHERE end_utc > ? ORDER BY start_utc",
-        (now_utc.isoformat(),),
-    ).fetchall()
 
-    upcoming = [fmt_shift(r) for r in rows]
+    # Live feed first (GitHub data branch), local SQLite as fallback.
+    remote = fetch_remote_shifts()
+    if remote:
+        upcoming = [fmt_shift(s) for s in remote]
+    else:
+        db = get_db()
+        rows = db.execute(
+            "SELECT * FROM shifts WHERE end_utc > ? ORDER BY start_utc",
+            (now_utc.isoformat(),),
+        ).fetchall()
+        upcoming = [fmt_shift(r) for r in rows]
     next_shift = None
     for s in upcoming:
         if s["start_local"].astimezone(timezone.utc) > now_utc:
